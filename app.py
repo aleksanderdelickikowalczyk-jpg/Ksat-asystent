@@ -26,7 +26,6 @@ st.markdown("""
     .main-header h1 { margin: 0; font-size: 1.8rem; }
     .main-header p  { margin: 0.3rem 0 0; opacity: 0.85; font-size: 0.95rem; }
     .info-box {
-        color: black;
         background: #E3F2FD;
         border-left: 4px solid #1E88E5;
         padding: 0.8rem 1rem;
@@ -111,7 +110,7 @@ if prompt := st.chat_input("Opisz swój problem z programem KSAT 3..."):
         with st.spinner("Ela pisze odpowiedź..."):
             try:
                 response = client.chat.completions.create(
-                    model="openrouter/auto",
+                    model="openrouter/free",
                     messages=[
                         {"role": "system", "content": SYSTEM_PROMPT},
                         *[{"role": m["role"], "content": m["content"]}
