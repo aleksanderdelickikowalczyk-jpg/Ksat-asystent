@@ -72,39 +72,30 @@ TWOJA ROLA: Obsługujesz WYŁĄCZNIE pytania dotyczące programu KSAT 3 i pracy 
 #  Jeśli pierwszy nie działa, próbuje kolejnego
 # ─────────────────────────────────────────────
 FREE_MODELS = [
-    # Mistral – bardzo dobre po polsku
+    # Mistral – najlepsze po polsku
     "mistralai/mistral-small-3.1-24b-instruct:free",
     "mistralai/devstral-small:free",
     # Meta Llama
     "meta-llama/llama-3.3-70b-instruct:free",
-    "meta-llama/llama-3.2-11b-vision-instruct:free",
     "meta-llama/llama-3.1-8b-instruct:free",
-    # Google Gemma
-    "google/gemma-3-27b-it:free",
-    "google/gemma-3-12b-it:free",
-    "google/gemma-3-4b-it:free",
-    "google/gemma-2-9b-it:free",
+    "meta-llama/llama-3.2-11b-vision-instruct:free",
     # DeepSeek
+    "deepseek/deepseek-chat-v3-0324:free",
     "deepseek/deepseek-r1:free",
     "deepseek/deepseek-r1-distill-llama-70b:free",
     "deepseek/deepseek-r1-distill-qwen-14b:free",
-    "deepseek/deepseek-chat-v3-0324:free",
     # Qwen
-    "qwen/qwen2.5-vl-72b-instruct:free",
-    "qwen/qwen2.5-vl-32b-instruct:free",
     "qwen/qwen3-235b-a22b:free",
     "qwen/qwen3-30b-a3b:free",
     "qwen/qwen3-14b:free",
     "qwen/qwen3-8b:free",
+    "qwen/qwen2.5-vl-72b-instruct:free",
     # Nvidia
     "nvidia/llama-3.1-nemotron-ultra-253b-v1:free",
     "nvidia/llama-3.3-nemotron-super-49b-v1:free",
     # Microsoft
     "microsoft/phi-4-reasoning-plus:free",
     "microsoft/phi-4:free",
-    # Inne
-    "tngtech/deepseek-r1t-chimera:free",
-    "moonshotai/kimi-vl-a3b-thinking:free",
 ]
 
 # ─────────────────────────────────────────────
