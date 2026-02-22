@@ -340,11 +340,13 @@ LIMIT_HTML = """
 """
 
 def get_response(messages):
+    # Wyślij do Groq tylko pola role i content – bez is_limit i innych
+    clean_messages = [{"role": m["role"], "content": m["content"]} for m in messages]
     for model in GROQ_MODELS:
         try:
             response = client.chat.completions.create(
                 model=model,
-                messages=[{"role": "system", "content": SYSTEM_PROMPT}, *messages],
+                messages=[{"role": "system", "content": SYSTEM_PROMPT}, *clean_messages],
                 max_tokens=1024,
             )
             return response.choices[0].message.content, False
