@@ -399,6 +399,6 @@ if prompt := st.chat_input("Opisz swój problem z programem KSAT 3..."):
 # ─────────────────────────────────────────────
 st.markdown("""
 <div class="footer">
-    🏢 <strong>ELEMENTO Sp. z o.o.</strong> · Wsparcie techniczne KSAT 3 · serwis@elemento.pl
+    🏢 <strong>Salon ELEMENTO Sp. z o.o.</strong> · Wsparcie techniczne KSAT 3 · infopcklinika@gmail.com Bądź tl:505 421 838
 </div>
 """, unsafe_allow_html=True)
