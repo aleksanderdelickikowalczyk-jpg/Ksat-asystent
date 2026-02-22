@@ -26,6 +26,7 @@ st.markdown("""
     .main-header h1 { margin: 0; font-size: 1.8rem; }
     .main-header p  { margin: 0.3rem 0 0; opacity: 0.85; font-size: 0.95rem; }
     .info-box {
+        color: black;
         background: #E3F2FD;
         border-left: 4px solid #1E88E5;
         padding: 0.8rem 1rem;
