@@ -10,9 +10,6 @@ st.set_page_config(
     layout="centered"
 )
 
-# ─────────────────────────────────────────────
-#  STYL CSS (branding ELEMENTO)
-# ─────────────────────────────────────────────
 st.markdown("""
 <style>
     .main-header {
@@ -37,9 +34,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ─────────────────────────────────────────────
-#  NAGŁÓWEK
-# ─────────────────────────────────────────────
 st.markdown("""
 <div class="main-header">
     <h1>🏫 Asystentka Ela – Pomoc KSAT 3</h1>
@@ -74,18 +68,55 @@ TWOJA ROLA: Obsługujesz WYŁĄCZNIE pytania dotyczące programu KSAT 3 i pracy 
 """
 
 # ─────────────────────────────────────────────
-#  KONFIGURACJA KLIENTA OPENROUTER
+#  LISTA DARMOWYCH MODELI (zapasowych)
+#  Jeśli pierwszy nie działa, próbuje kolejnego
+# ─────────────────────────────────────────────
+FREE_MODELS = [
+    "mistralai/mistral-small-3.1-24b-instruct:free",
+    "meta-llama/llama-3.3-70b-instruct:free",
+    "deepseek/deepseek-r1-distill-llama-70b:free",
+    "google/gemma-3-27b-it:free",
+    "qwen/qwen2.5-vl-72b-instruct:free",
+]
+
+# ─────────────────────────────────────────────
+#  KONFIGURACJA KLIENTA
 # ─────────────────────────────────────────────
 try:
     api_key = st.secrets["OPENROUTER_API_KEY"]
 except (KeyError, FileNotFoundError):
-    st.error("⚠️ Brak klucza API. Dodaj OPENROUTER_API_KEY do pliku .streamlit/secrets.toml lub Secrets na Streamlit Cloud.")
+    st.error("⚠️ Brak klucza API. Dodaj OPENROUTER_API_KEY do Secrets na Streamlit Cloud.")
     st.stop()
 
 client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
     api_key=api_key
 )
+
+# ─────────────────────────────────────────────
+#  FUNKCJA Z AUTOMATYCZNYM PRZEŁĄCZANIEM MODELI
+# ─────────────────────────────────────────────
+def get_response(messages):
+    for model in FREE_MODELS:
+        try:
+            response = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    *messages
+                ]
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            error_str = str(e)
+            # Jeśli rate limit lub niedostępny - próbuj następny model
+            if "429" in error_str or "404" in error_str or "rate" in error_str.lower():
+                continue
+            else:
+                # Inny błąd - zwróć komunikat
+                return f"⚠️ Wystąpił problem z połączeniem. Spróbuj odświeżyć stronę (klawisz F5). Jeśli problem się powtarza, skontaktuj się z serwisem ELEMENTO: serwis@elemento.pl\n\n_(Szczegóły: {e})_"
+    
+    return "⚠️ Wszystkie serwery są chwilowo przeciążone. Odczekaj kilka minut i spróbuj ponownie. Jeśli problem się powtarza, skontaktuj się z serwisem ELEMENTO: serwis@elemento.pl"
 
 # ─────────────────────────────────────────────
 #  HISTORIA CZATU
@@ -108,19 +139,7 @@ if prompt := st.chat_input("Opisz swój problem z programem KSAT 3..."):
 
     with st.chat_message("assistant"):
         with st.spinner("Ela pisze odpowiedź..."):
-            try:
-                response = client.chat.completions.create(
-                    model="meta-llama/llama-3.3-70b-instruct:free",
-                    messages=[
-                        {"role": "system", "content": SYSTEM_PROMPT},
-                        *[{"role": m["role"], "content": m["content"]}
-                          for m in st.session_state.messages]
-                    ]
-                )
-                answer = response.choices[0].message.content
-            except Exception as e:
-                answer = f"⚠️ Wystąpił problem z połączeniem. Spróbuj odświeżyć stronę (klawisz F5). Jeśli problem się powtarza, skontaktuj się z serwisem ELEMENTO: serwis@elemento.pl\n\n_(Szczegóły techniczne: {e})_"
-
+            answer = get_response(st.session_state.messages)
         st.markdown(answer)
 
     st.session_state.messages.append({"role": "assistant", "content": answer})
