@@ -110,7 +110,7 @@ if prompt := st.chat_input("Opisz swój problem z programem KSAT 3..."):
         with st.spinner("Ela pisze odpowiedź..."):
             try:
                 response = client.chat.completions.create(
-                    model="google/gemini-2.0-flash-exp:free",
+                    model+"google/gemini-2.0-flash:free",
                     messages=[
                         {"role": "system", "content": SYSTEM_PROMPT},
                         *[{"role": m["role"], "content": m["content"]}
