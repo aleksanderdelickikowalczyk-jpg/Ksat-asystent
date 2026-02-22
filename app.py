@@ -1,5 +1,7 @@
 import streamlit as st
 from groq import Groq
+import PyPDF2
+import io
 
 # ─────────────────────────────────────────────
 #  KONFIGURACJA STRONY
@@ -11,54 +13,62 @@ st.set_page_config(
 )
 
 # ─────────────────────────────────────────────
-#  STYL CSS – profesjonalny, czysty design
+#  DARK MODE CSS z geometrycznym patternem
 # ─────────────────────────────────────────────
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Serif+Display&display=swap');
 
-    /* Globalne */
-    html, body, [class*="css"] {
+    html, body, [class*="css"], .stApp {
         font-family: 'DM Sans', sans-serif;
+        color: #E2E8F0;
     }
 
+    /* ── DARK BACKGROUND z geometrycznym patternem ── */
     .stApp {
-        background: #F0F4F8;
+        background-color: #0D1117;
+        background-image:
+            linear-gradient(rgba(30,136,229,0.06) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(30,136,229,0.06) 1px, transparent 1px),
+            radial-gradient(ellipse at 20% 50%, rgba(30,136,229,0.08) 0%, transparent 60%),
+            radial-gradient(ellipse at 80% 20%, rgba(99,179,237,0.06) 0%, transparent 50%);
+        background-size: 40px 40px, 40px 40px, 100% 100%, 100% 100%;
     }
 
-    /* Ukryj domyślny header Streamlit */
+    /* Ukryj Streamlit UI */
     #MainMenu, footer, header { visibility: hidden; }
 
-    /* ── HERO HEADER ── */
+    /* ── HERO ── */
     .hero {
-        background: linear-gradient(135deg, #0A2540 0%, #1A4B8C 60%, #1E88E5 100%);
+        background: linear-gradient(135deg, #0A1628 0%, #0D2144 60%, #0F3460 100%);
+        border: 1px solid rgba(30,136,229,0.25);
         border-radius: 20px;
         padding: 2.5rem 2rem 2rem;
         margin-bottom: 1.5rem;
         position: relative;
         overflow: hidden;
-        box-shadow: 0 8px 32px rgba(10,37,64,0.18);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05);
     }
     .hero::before {
         content: '';
         position: absolute;
-        top: -40px; right: -40px;
-        width: 220px; height: 220px;
-        background: rgba(255,255,255,0.05);
+        top: -60px; right: -60px;
+        width: 250px; height: 250px;
+        background: radial-gradient(circle, rgba(30,136,229,0.12) 0%, transparent 70%);
         border-radius: 50%;
     }
     .hero::after {
         content: '';
         position: absolute;
-        bottom: -60px; left: 30px;
-        width: 160px; height: 160px;
-        background: rgba(255,255,255,0.04);
+        bottom: -40px; left: 20px;
+        width: 180px; height: 180px;
+        background: radial-gradient(circle, rgba(99,179,237,0.08) 0%, transparent 70%);
         border-radius: 50%;
     }
     .hero-badge {
         display: inline-block;
-        background: rgba(255,255,255,0.15);
-        color: #90CAF9;
+        background: rgba(30,136,229,0.15);
+        color: #63B3ED;
         font-size: 0.72rem;
         font-weight: 600;
         letter-spacing: 0.12em;
@@ -66,7 +76,7 @@ st.markdown("""
         padding: 0.3rem 0.8rem;
         border-radius: 20px;
         margin-bottom: 0.8rem;
-        border: 1px solid rgba(255,255,255,0.15);
+        border: 1px solid rgba(30,136,229,0.3);
     }
     .hero h1 {
         font-family: 'DM Serif Display', serif;
@@ -76,7 +86,7 @@ st.markdown("""
         line-height: 1.2;
     }
     .hero p {
-        color: rgba(255,255,255,0.65);
+        color: rgba(255,255,255,0.5);
         font-size: 0.9rem;
         margin: 0;
         font-weight: 300;
@@ -84,114 +94,122 @@ st.markdown("""
     .hero-status {
         display: flex;
         align-items: center;
-        gap: 0.4rem;
+        gap: 0.5rem;
         margin-top: 1.2rem;
     }
     .status-dot {
         width: 8px; height: 8px;
-        background: #69F0AE;
+        background: #48BB78;
         border-radius: 50%;
+        box-shadow: 0 0 8px #48BB78;
         animation: pulse 2s infinite;
     }
     @keyframes pulse {
-        0%, 100% { opacity: 1; transform: scale(1); }
-        50% { opacity: 0.5; transform: scale(1.3); }
+        0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 8px #48BB78; }
+        50% { opacity: 0.6; transform: scale(1.3); box-shadow: 0 0 14px #48BB78; }
     }
-    .status-text {
-        color: rgba(255,255,255,0.6);
-        font-size: 0.78rem;
-        font-weight: 400;
-    }
+    .status-text { color: rgba(255,255,255,0.45); font-size: 0.78rem; }
 
-    /* ── POWITANIE ── */
+    /* ── WELCOME CARD ── */
     .welcome-card {
-        background: white;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(30,136,229,0.2);
+        border-left: 4px solid #1E88E5;
         border-radius: 16px;
         padding: 1.2rem 1.4rem;
         margin-bottom: 1.2rem;
-        border-left: 4px solid #1E88E5;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
         display: flex;
         gap: 0.8rem;
         align-items: flex-start;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.2);
     }
-    .welcome-icon {
-        font-size: 1.6rem;
-        flex-shrink: 0;
-        margin-top: 0.1rem;
+    .welcome-icon { font-size: 1.6rem; flex-shrink: 0; }
+    .welcome-text strong { color: #E2E8F0; font-size: 0.95rem; }
+    .welcome-text p { color: #718096; font-size: 0.85rem; margin: 0.2rem 0 0; line-height: 1.5; }
+
+    /* ── UPLOAD SEKCJA ── */
+    .upload-section {
+        background: rgba(255,255,255,0.03);
+        border: 1px dashed rgba(30,136,229,0.3);
+        border-radius: 14px;
+        padding: 1rem 1.2rem;
+        margin-bottom: 1rem;
     }
-    .welcome-text strong {
-        color: #0A2540;
-        font-size: 0.95rem;
+    .upload-title {
+        color: #63B3ED;
+        font-size: 0.82rem;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        margin-bottom: 0.5rem;
     }
-    .welcome-text p {
-        color: #546E7A;
-        font-size: 0.85rem;
-        margin: 0.2rem 0 0;
-        line-height: 1.5;
+    .upload-desc {
+        color: #4A5568;
+        font-size: 0.8rem;
+        margin-bottom: 0.7rem;
+    }
+    .file-loaded {
+        background: rgba(72,187,120,0.1);
+        border: 1px solid rgba(72,187,120,0.3);
+        border-radius: 8px;
+        padding: 0.5rem 0.8rem;
+        color: #68D391;
+        font-size: 0.82rem;
+        margin-top: 0.5rem;
     }
 
-    /* ── KOMUNIKAT BŁĘDU 429 ── */
+    /* ── STREAMLIT DARK OVERRIDES ── */
+    .stChatMessage {
+        background: rgba(255,255,255,0.03) !important;
+        border: 1px solid rgba(255,255,255,0.07) !important;
+        border-radius: 14px !important;
+    }
+    .stChatInputContainer textarea {
+        background: rgba(255,255,255,0.05) !important;
+        color: #E2E8F0 !important;
+        border: 1px solid rgba(30,136,229,0.3) !important;
+    }
+    [data-testid="stFileUploader"] {
+        background: rgba(255,255,255,0.03) !important;
+        border-radius: 10px !important;
+    }
+    [data-testid="stFileUploader"] label { color: #A0AEC0 !important; }
+
+    /* ── LIMIT ALERT ── */
     .limit-alert {
-        background: linear-gradient(135deg, #FFF3E0, #FFF8E1);
-        border: 1.5px solid #FFB300;
+        background: linear-gradient(135deg, rgba(237,137,54,0.12), rgba(236,201,75,0.08));
+        border: 1.5px solid rgba(237,137,54,0.4);
         border-radius: 14px;
         padding: 1.2rem 1.4rem;
         margin: 0.5rem 0;
         display: flex;
         gap: 0.8rem;
         align-items: flex-start;
-        box-shadow: 0 4px 16px rgba(255,179,0,0.15);
+        box-shadow: 0 4px 16px rgba(237,137,54,0.1);
         animation: slideIn 0.3s ease;
     }
     .limit-alert-icon { font-size: 1.8rem; flex-shrink: 0; }
-    .limit-alert-title {
-        font-weight: 700;
-        color: #E65100;
-        font-size: 0.95rem;
-        margin-bottom: 0.3rem;
-    }
-    .limit-alert-text {
-        color: #BF360C;
-        font-size: 0.85rem;
-        line-height: 1.5;
-    }
+    .limit-alert-title { font-weight: 700; color: #F6AD55; font-size: 0.95rem; margin-bottom: 0.3rem; }
+    .limit-alert-text { color: #CBD5E0; font-size: 0.85rem; line-height: 1.5; }
     .limit-alert-tip {
         margin-top: 0.5rem;
-        background: rgba(255,179,0,0.15);
+        background: rgba(237,137,54,0.12);
         border-radius: 8px;
         padding: 0.4rem 0.7rem;
         font-size: 0.8rem;
-        color: #E65100;
-    }
-
-    /* ── WIADOMOŚCI CZATU ── */
-    .stChatMessage {
-        border-radius: 14px !important;
-        margin-bottom: 0.5rem !important;
-    }
-
-    /* ── INPUT ── */
-    .stChatInputContainer {
-        border-radius: 14px !important;
-        border: 1.5px solid #BBDEFB !important;
-        box-shadow: 0 2px 12px rgba(30,136,229,0.08) !important;
-    }
-    .stChatInputContainer:focus-within {
-        border-color: #1E88E5 !important;
-        box-shadow: 0 2px 16px rgba(30,136,229,0.18) !important;
+        color: #F6AD55;
     }
 
     /* ── STOPKA ── */
     .footer {
         text-align: center;
-        color: #90A4AE;
+        color: #2D3748;
         font-size: 0.75rem;
         padding: 1rem 0 0.5rem;
-        border-top: 1px solid #E0E0E0;
+        border-top: 1px solid rgba(255,255,255,0.06);
         margin-top: 1.5rem;
     }
-    .footer strong { color: #546E7A; }
+    .footer strong { color: #4A5568; }
 
     @keyframes slideIn {
         from { opacity: 0; transform: translateY(-8px); }
@@ -201,7 +219,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────
-#  HERO HEADER
+#  HERO
 # ─────────────────────────────────────────────
 st.markdown("""
 <div class="hero">
@@ -216,17 +234,55 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────
-#  KARTA POWITALNA
+#  WELCOME CARD
 # ─────────────────────────────────────────────
 st.markdown("""
 <div class="welcome-card">
     <div class="welcome-icon">👋</div>
     <div class="welcome-text">
         <strong>Cześć! Tu Asystentka Ela.</strong>
-        <p>Opisz mi swój problem z programem KSAT 3, a wytłumaczę wszystko krok po kroku – bez trudnych słów technicznych. Jestem tu po to, żeby Ci pomóc! 😊</p>
+        <p>Opisz mi swój problem z programem KSAT 3, a wytłumaczę wszystko krok po kroku – bez trudnych słów technicznych. Możesz też wgrać plik PDF z błędem lub instrukcją! 😊</p>
     </div>
 </div>
 """, unsafe_allow_html=True)
+
+# ─────────────────────────────────────────────
+#  UPLOAD PLIKU PDF
+# ─────────────────────────────────────────────
+st.markdown("""
+<div class="upload-section">
+    <div class="upload-title">📎 Wgraj plik (opcjonalnie)</div>
+    <div class="upload-desc">Możesz wgrać plik <strong style="color:#63B3ED">wyłącznie w formacie PDF</strong> (np. instrukcję lub raport z błędem) – inne formaty nie są obsługiwane.</div>
+</div>
+""", unsafe_allow_html=True)
+
+st.caption("⚠️ Akceptujemy **tylko pliki .PDF** – Word, Excel, zdjęcia i inne formaty nie będą działać.")
+uploaded_file = st.file_uploader(
+    "Wybierz plik PDF",
+    type=["pdf"],
+    label_visibility="collapsed"
+)
+
+pdf_context = ""
+if uploaded_file is not None:
+    try:
+        pdf_reader = PyPDF2.PdfReader(io.BytesIO(uploaded_file.read()))
+        pdf_text = ""
+        for page in pdf_reader.pages:
+            pdf_text += page.extract_text() or ""
+
+        if pdf_text.strip():
+            pdf_context = f"\n\n[WGRANY PLIK: {uploaded_file.name}]\n{pdf_text[:4000]}"
+            st.markdown(f"""
+            <div class="file-loaded">
+                ✅ Plik wczytany: <strong>{uploaded_file.name}</strong>
+                ({len(pdf_reader.pages)} str.) – Ela weźmie go pod uwagę w odpowiedzi.
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.warning("Nie udało się odczytać tekstu z PDF. Spróbuj opisać problem słowami.")
+    except Exception as e:
+        st.warning(f"Problem z odczytaniem pliku: {e}")
 
 # ─────────────────────────────────────────────
 #  SYSTEM PROMPT
@@ -243,12 +299,13 @@ ZASADY:
 - Opisuj kliknięcia dokładnie (np. "Kliknij zielony przycisk 'Wyślij' w prawym dolnym rogu ekranu")
 - Jeśli nie znasz odpowiedzi dotyczącej KSAT 3 → napisz: "To pytanie wymaga kontaktu z serwisem ELEMENTO. Możesz napisać na adres: serwis@elemento.pl"
 - Jeśli pytanie NIE dotyczy KSAT 3 → uprzejmie odmów i przypomnij swoją rolę
+- Jeśli w wiadomości użytkownika znajduje się tekst z wgranego pliku PDF, przeanalizuj go i odnieś się do jego treści
 
 TWOJA ROLA: Obsługujesz WYŁĄCZNIE pytania dotyczące programu KSAT 3 i pracy w przedszkolu z tym systemem.
 """
 
 # ─────────────────────────────────────────────
-#  MODELE GROQ
+#  GROQ
 # ─────────────────────────────────────────────
 GROQ_MODELS = [
     "llama-3.3-70b-versatile",
@@ -258,9 +315,6 @@ GROQ_MODELS = [
     "gemma2-9b-it",
 ]
 
-# ─────────────────────────────────────────────
-#  KONFIGURACJA KLIENTA GROQ
-# ─────────────────────────────────────────────
 try:
     api_key = st.secrets["GROQ_API_KEY"]
 except (KeyError, FileNotFoundError):
@@ -269,9 +323,6 @@ except (KeyError, FileNotFoundError):
 
 client = Groq(api_key=api_key)
 
-# ─────────────────────────────────────────────
-#  FUNKCJA Z OBSŁUGĄ BŁĘDÓW
-# ─────────────────────────────────────────────
 LIMIT_HTML = """
 <div class="limit-alert">
     <div class="limit-alert-icon">⏳</div>
@@ -293,24 +344,19 @@ def get_response(messages):
         try:
             response = client.chat.completions.create(
                 model=model,
-                messages=[
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    *messages
-                ],
+                messages=[{"role": "system", "content": SYSTEM_PROMPT}, *messages],
                 max_tokens=1024,
             )
-            return response.choices[0].message.content, False  # (treść, czy_limit)
+            return response.choices[0].message.content, False
         except Exception as e:
             error_str = str(e)
             if "429" in error_str:
-                continue  # Próbuj kolejny model
-            elif any(code in error_str for code in ["404", "503", "unavailable"]):
+                continue
+            elif any(c in error_str for c in ["404", "503", "unavailable"]):
                 continue
             else:
                 return f"⚠️ Wystąpił nieoczekiwany problem. Skontaktuj się z serwisem ELEMENTO: serwis@elemento.pl\n\n_(Szczegóły: {e})_", False
-
-    # Wszystkie modele zwróciły 429 – limit przekroczony
-    return LIMIT_HTML, True  # (HTML alertu, czy_limit=True)
+    return LIMIT_HTML, True
 
 # ─────────────────────────────────────────────
 #  HISTORIA CZATU
@@ -326,18 +372,19 @@ for message in st.session_state.messages:
             st.markdown(message["content"])
 
 # ─────────────────────────────────────────────
-#  OBSŁUGA NOWEGO ZAPYTANIA
+#  NOWE ZAPYTANIE
 # ─────────────────────────────────────────────
 if prompt := st.chat_input("Opisz swój problem z programem KSAT 3..."):
+    # Dodaj kontekst PDF do wiadomości jeśli plik wgrany
+    full_prompt = prompt + pdf_context
 
-    st.session_state.messages.append({"role": "user", "content": prompt, "is_limit": False})
+    st.session_state.messages.append({"role": "user", "content": full_prompt, "is_limit": False})
     with st.chat_message("user"):
-        st.markdown(prompt)
+        st.markdown(prompt)  # Pokaż tylko pytanie, bez surowego tekstu PDF
 
     with st.chat_message("assistant"):
         with st.spinner("Ela pisze odpowiedź..."):
             answer, is_limit = get_response(st.session_state.messages)
-
         if is_limit:
             st.markdown(answer, unsafe_allow_html=True)
         else:
