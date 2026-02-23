@@ -333,7 +333,7 @@ LIMIT_HTML = """
             Spróbuj ponownie jutro lub skontaktuj się bezpośrednio z serwisem.
         </div>
         <div class="limit-alert-tip">
-            📧 Napisz do nas: <strong>serwis@elemento.pl</strong>
+            📧 Napisz do nas: <strong>infopcklinika@gmail.com bądź zadzwoń nr: 505 421 838</strong>
         </div>
     </div>
 </div>
@@ -357,7 +357,7 @@ def get_response(messages):
             elif any(c in error_str for c in ["404", "503", "unavailable"]):
                 continue
             else:
-                return f"⚠️ Wystąpił nieoczekiwany problem. Skontaktuj się z serwisem ELEMENTO: serwis@elemento.pl\n\n_(Szczegóły: {e})_", False
+                return f"⚠️ Wystąpił nieoczekiwany problem. Skontaktuj się z serwisem ELEMENTO: infopcklinika@gmail.com bądź zadzwoń nr: 505 421 838\n\n_(Szczegóły: {e})_", False
     return LIMIT_HTML, True
 
 # ─────────────────────────────────────────────
@@ -399,6 +399,6 @@ if prompt := st.chat_input("Opisz swój problem z programem KSAT 3..."):
 # ─────────────────────────────────────────────
 st.markdown("""
 <div class="footer">
-    🏢 <strong>Salon ELEMENTO Sp. z o.o.</strong> · Wsparcie techniczne KSAT 3 · infopcklinika@gmail.com Bądź tl:505 421 838
+    🏢 <strong>Salon ELEMENTO Sp. z o.o.</strong> · Wsparcie techniczne KSAT 3 · infopcklinika@gmail.com Bądź tl: 505 421 838
 </div>
 """, unsafe_allow_html=True)
